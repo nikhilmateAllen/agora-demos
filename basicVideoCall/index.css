@@ -34,8 +34,9 @@
 }
 
 .player {
-  width: 640px;
-  height: 480px;
+  max-width: 1280px;
+  width: 100%;
+  height: 720px;
 }
 
 .player-name {
