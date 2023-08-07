@@ -23,6 +23,7 @@ var localTracks = {
  * On initiation no users are connected.
  */
 var remoteUsers = {};
+var isHighRemoteVideoQuality = false;
 
 /*
  * On initiation. `client` is not attached to any project or channel for any specific user.
@@ -143,7 +144,7 @@ function initVideoProfiles() {
   videoProfiles.forEach(profile => {
     $(".profile-list").append(`<a class="dropdown-item" label="${profile.label}" href="#">${profile.label}: ${profile.detail}</a>`);
   });
-  curVideoProfile = videoProfiles.find(item => item.label == '480p_1');
+  curVideoProfile = videoProfiles.find(item => item.label == '720p_2');
   $(".profile-input").val(`${curVideoProfile.detail}`);
 }
 async function changeVideoProfile(label) {
@@ -172,8 +173,24 @@ $(() => {
     $("#appid").val(options.appid);
     $("#token").val(options.token);
     $("#channel").val(options.channel);
-    $("#join-form").submit();
+    // $("#join-form").submit();
   }
+
+  document.getElementById('change-quality').addEventListener('click', function (ev) 
+  {
+    if(isHighRemoteVideoQuality == false)
+    {
+        client.setRemoteVideoStreamType(remoteUsers[Object.keys(remoteUsers)[0]], 0);
+        isHighRemoteVideoQuality = true;
+        ev.currentTarget.textContent = 'Set Low Quality'
+    }
+    else
+    {
+        client.setRemoteVideoStreamType(remoteUsers[Object.keys(remoteUsers)[0]], 1);
+        isHighRemoteVideoQuality = false;
+        ev.currentTarget.textContent = 'Set High Quality'
+    }
+  });
 });
 
 /*
@@ -181,9 +198,10 @@ $(() => {
  * entered in the form and calls join asynchronously. The UI is updated to match the options entered
  * by the user.
  */
-$("#join-form").submit(async function (e) {
-  e.preventDefault();
-  $("#join").attr("disabled", true);
+$(".join-btn").click(async function (e) {
+  const type = $(e.currentTarget).data('role')
+  console.log(type)
+  $('.join-btn').attr("disabled", true);
   try {
     if (!client) {
       client = AgoraRTC.createClient({
@@ -195,9 +213,9 @@ $("#join-form").submit(async function (e) {
     options.uid = Number($("#uid").val());
     options.appid = $("#appid").val();
     options.token = $("#token").val();
-    await join();
+    await join(type);
 
-    sendDataToMixPanel();
+    // sendDataToMixPanel();
 
     if (options.token) {
       $("#success-alert-with-token").css("display", "block");
@@ -232,31 +250,49 @@ $(".mic-list").delegate("a", "click", function (e) {
 /*
  * Join a channel, then create local video and audio tracks and publish them to the channel.
  */
-async function join() {
+async function join(type) {
   // Add an event listener to play remote tracks when remote user publishes.
   client.on("user-published", handleUserPublished);
   client.on("user-unpublished", handleUserUnpublished);
+  // client.on("network-quality", handleNetworkQuality)
   // Join the channel.
-  options.uid = await client.join(options.appid, options.channel, options.token || null, options.uid || null);
-  if (!localTracks.audioTrack) {
-    localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-      encoderConfig: "music_standard"
-    });
+  if(type === 'teacher') {
+    client.enableDualStream();
+    client.setLowStreamParameter({
+      // framerate: { max: 30, min: 15 },
+      // width: { max: 640, min: 480 },
+      // height: { max: 480, min: 360 },
+      width: 640,
+      height: 480,
+      framerate: 15
+    })
   }
-  if (!localTracks.videoTrack) {
-    localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
-      encoderConfig: curVideoProfile.value
-    });
+  
+  options.uid = await client.join(options.appid, options.channel, options.token || null, options.uid || null);
+  
+  if(type === 'teacher') {
+    client.setRemoteVideoStreamType(remoteUsers[Object.keys(remoteUsers)[0]], 1);
+    if (!localTracks.audioTrack) {
+      localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+        encoderConfig: "music_standard"
+      });
+    }
+    if (!localTracks.videoTrack) {
+      localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
+        encoderConfig: curVideoProfile.value
+      });
+    }
+
+    await client.publish(Object.values(localTracks));
+    console.log("publish success");
   }
 
   // Play the local video track to the local browser and update the UI with the user ID.
   // localTracks.videoTrack.play("local-player");
   // $("#local-player-name").text(`localVideo(${options.uid})`);
-  $("#joined-setup").css("display", "flex");
+  // $("#joined-setup").css("display", "flex");
 
   // Publish the local video and audio tracks to the channel.
-  await client.publish(Object.values(localTracks));
-  console.log("publish success");
 }
 
 /*
@@ -279,7 +315,7 @@ async function leave() {
   // leave the channel
   await client.leave();
   $("#local-player-name").text("");
-  $("#join").attr("disabled", false);
+  $(".join-btn").attr("disabled", false);
   $("#leave").attr("disabled", true);
   $("#joined-setup").css("display", "none");
   console.log("client leaves channel success");
