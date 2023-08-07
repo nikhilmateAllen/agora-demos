@@ -256,22 +256,22 @@ async function join(type) {
   client.on("user-unpublished", handleUserUnpublished);
   // client.on("network-quality", handleNetworkQuality)
   // Join the channel.
-  if(type === 'teacher') {
-    client.enableDualStream();
-    client.setLowStreamParameter({
-      // framerate: { max: 30, min: 15 },
-      // width: { max: 640, min: 480 },
-      // height: { max: 480, min: 360 },
-      width: 640,
-      height: 480,
-      framerate: 15
-    })
-  }
+  client.enableDualStream();
+  client.setLowStreamParameter({
+    // framerate: { max: 30, min: 15 },
+    // width: { max: 640, min: 480 },
+    // height: { max: 480, min: 360 },
+    width: 360,
+    height: 240,
+    framerate: 5
+  })
   
   options.uid = await client.join(options.appid, options.channel, options.token || null, options.uid || null);
   
-  if(type === 'teacher') {
+  if(type === 'student') {
     client.setRemoteVideoStreamType(remoteUsers[Object.keys(remoteUsers)[0]], 1);
+  }
+  if(type === 'teacher') {
     if (!localTracks.audioTrack) {
       localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
         encoderConfig: "music_standard"
