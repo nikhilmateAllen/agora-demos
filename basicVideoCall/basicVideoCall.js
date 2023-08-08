@@ -102,35 +102,41 @@ AgoraRTC.onCameraChanged = async changedDevice => {
   }
 };
 async function initDevices() {
-  if (!localTracks.audioTrack) {
-    localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-      encoderConfig: "music_standard"
-    });
-  }
-  if (!localTracks.videoTrack) {
-    localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
-      encoderConfig: curVideoProfile.value
-    });
-  }
+  // if (!localTracks.audioTrack) {
+  //   localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+  //     encoderConfig: "music_standard"
+  //   });
+  // }
+  // if (!localTracks.videoTrack) {
+  //   localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
+  //     encoderConfig: curVideoProfile.value
+  //   });
+  // }
   // get mics
   mics = await AgoraRTC.getMicrophones();
-  const audioTrackLabel = localTracks.audioTrack.getTrackLabel();
-  currentMic = mics.find(item => item.label === audioTrackLabel);
-  $(".mic-input").val(currentMic.label);
-  $(".mic-list").empty();
-  mics.forEach(mic => {
-    $(".mic-list").append(`<a class="dropdown-item" href="#">${mic.label}</a>`);
-  });
+  // const audioTrackLabel = localTracks.audioTrack.getTrackLabel();
+  // currentMic = mics.find(item => item.label === audioTrackLabel);
+  if(Array.isArray(mics) && mics.length) {
+    currentMic = mics[0];
+    $(".mic-input").val(currentMic.label);
+    $(".mic-list").empty();
+    mics.forEach(mic => {
+      $(".mic-list").append(`<a class="dropdown-item" href="#">${mic.label}</a>`);
+    });
+  }
 
   // get cameras
   cams = await AgoraRTC.getCameras();
-  const videoTrackLabel = localTracks.videoTrack.getTrackLabel();
-  currentCam = cams.find(item => item.label === videoTrackLabel);
-  $(".cam-input").val(currentCam.label);
-  $(".cam-list").empty();
-  cams.forEach(cam => {
-    $(".cam-list").append(`<a class="dropdown-item" href="#">${cam.label}</a>`);
-  });
+  // const videoTrackLabel = localTracks.videoTrack.getTrackLabel();
+  // currentCam = cams.find(item => item.label === videoTrackLabel);
+  if(Array.isArray(cams) && cams.length) {
+    currentCam = cams[0]
+    $(".cam-input").val(currentCam.label);
+    $(".cam-list").empty();
+    cams.forEach(cam => {
+      $(".cam-list").append(`<a class="dropdown-item" href="#">${cam.label}</a>`);
+    });
+  }
 }
 async function switchCamera(label) {
   currentCam = cams.find(cam => cam.label === label);
