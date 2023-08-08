@@ -28,6 +28,8 @@ var localTracks = {
 var remoteUsers = {};
 var isHighRemoteVideoQuality = true;
 var userType = null
+var cams, mics
+var currentCamera = null, currentMic = null
 
 /*
  * On initiation. `client` is not attached to any project or channel for any specific user.
@@ -121,7 +123,7 @@ async function initDevices() {
     $(".mic-input").val(currentMic.label);
     $(".mic-list").empty();
     mics.forEach(mic => {
-      $(".mic-list").append(`<a class="dropdown-item" href="#">${mic.label}</a>`);
+      $(".mic-list").append(`<a class="dropdown-item" data-id="${mic.deviceId}" href="#">${mic.label}</a>`);
     });
   }
 
@@ -130,25 +132,25 @@ async function initDevices() {
   // const videoTrackLabel = localTracks.videoTrack.getTrackLabel();
   // currentCam = cams.find(item => item.label === videoTrackLabel);
   if(Array.isArray(cams) && cams.length) {
-    currentCam = cams[0]
-    $(".cam-input").val(currentCam.label);
+    currentCamera = cams[0]
+    $(".cam-input").val(currentCamera.label);
     $(".cam-list").empty();
     cams.forEach(cam => {
-      $(".cam-list").append(`<a class="dropdown-item" href="#">${cam.label}</a>`);
+      $(".cam-list").append(`<a class="dropdown-item" data-id="${cam.deviceId}" href="#">${cam.label}</a>`);
     });
   }
 }
-async function switchCamera(label) {
-  currentCam = cams.find(cam => cam.label === label);
-  $(".cam-input").val(currentCam.label);
+async function switchCamera(id) {
+  currentCamera = cams.find(cam => cam.deviceId === id);
+  $(".cam-input").val(currentCamera.label);
   // switch device of local video track.
-  await localTracks.videoTrack.setDevice(currentCam.deviceId);
+  // await localTracks.videoTrack.setDevice(currentCam.deviceId);
 }
-async function switchMicrophone(label) {
-  currentMic = mics.find(mic => mic.label === label);
+async function switchMicrophone(id) {
+  currentMic = mics.find(mic => mic.deviceId === id);
   $(".mic-input").val(currentMic.label);
   // switch device of local audio track.
-  await localTracks.audioTrack.setDevice(currentMic.deviceId);
+  // await localTracks.audioTrack.setDevice(currentMic.deviceId);
 }
 function initVideoProfiles() {
   videoProfiles.forEach(profile => {
@@ -170,6 +172,7 @@ async function changeVideoProfile(label) {
  */
 $(() => {
   initVideoProfiles();
+  initDevices();
   $(".profile-list").delegate("a", "click", function (e) {
     changeVideoProfile(this.getAttribute("label"));
   });
@@ -248,10 +251,11 @@ $('#agora-collapse').on('show.bs.collapse	', function () {
   initDevices();
 });
 $(".cam-list").delegate("a", "click", function (e) {
-  switchCamera(this.text);
+  switchCamera($(this).data('id'));
 });
 $(".mic-list").delegate("a", "click", function (e) {
-  switchMicrophone(this.text);
+  // switchMicrophone(this.text);
+  switchMicrophone($(this).data('id'));
 });
 
 /*
@@ -284,12 +288,14 @@ async function join(type) {
     // Publish the local video and audio tracks to the channel.
     if (!localTracks.audioTrack) {
       localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-        encoderConfig: "music_standard"
+        encoderConfig: "music_standard",
+        microphoneId: currentMic.deviceId
       });
     }
     if (!localTracks.videoTrack) {
       localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack({
-        encoderConfig: curVideoProfile.value
+        encoderConfig: curVideoProfile.value,
+        cameraId: currentCamera.deviceId
       });
     }
 
