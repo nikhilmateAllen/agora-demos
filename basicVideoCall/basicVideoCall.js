@@ -266,9 +266,11 @@ async function join(type) {
   
   options.uid = await client.join(options.appid, options.channel, options.token || null, options.uid || null);
   
-  // if(type === 'student') {
-  //   client.setRemoteVideoStreamType(Object.keys(remoteUsers)[0], 1);
-  // }
+  if(type === 'student' && typeof remoteUsers === 'object' && Object.keys(remoteUsers).length) {
+    await client.setRemoteVideoStreamType(Object.keys(remoteUsers)[0], 1);
+    $("#change-quality").text("For student: set high quality");
+    isHighRemoteVideoQuality = false;  
+  }
   
   if(type === 'teacher') {
     // Publish the local video and audio tracks to the channel.
