@@ -170,7 +170,7 @@ $(() => {
   var urlParams = new URL(location.href).searchParams;
   options.appid = urlParams.get("appid");
   options.channel = urlParams.get("channel");
-  options.token = urlParams.get("token");
+  options.token = atob(decodeURIComponent((urlParams.get("token"))));
   options.uid = urlParams.get("uid");
   if (options.appid && options.channel) {
     $("#uid").val(options.uid);
@@ -179,6 +179,8 @@ $(() => {
     $("#channel").val(options.channel);
     // $("#join-form").submit();
   }
+
+  console.log('options::', options)
 
   document.getElementById('change-quality').addEventListener('click', async function (ev) 
   {
