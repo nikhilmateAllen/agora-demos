@@ -11,7 +11,7 @@
  */
 var client = AgoraRTC.createClient({
   mode: "rtc",
-  codec: getCodec()
+  codec: "vp8"
 });
 
 /*
@@ -27,6 +27,7 @@ var localTracks = {
  */
 var remoteUsers = {};
 var isHighRemoteVideoQuality = true;
+var userType = null
 
 /*
  * On initiation. `client` is not attached to any project or channel for any specific user.
@@ -179,19 +180,19 @@ $(() => {
     // $("#join-form").submit();
   }
 
-  document.getElementById('change-quality').addEventListener('click', function (ev) 
+  document.getElementById('change-quality').addEventListener('click', async function (ev) 
   {
     if(isHighRemoteVideoQuality == false)
     {
-        client.setRemoteVideoStreamType(Object.keys(remoteUsers)[0], 0);
+        await client.setRemoteVideoStreamType(Number(Object.keys(remoteUsers)[0]), 0);
         isHighRemoteVideoQuality = true;
-        ev.currentTarget.textContent = 'For student: Set Low Quality'
+        ev.target.textContent = 'For student: Set Low Quality'
     }
     else
     {
-        client.setRemoteVideoStreamType(Object.keys(remoteUsers)[0], 1);
+        await client.setRemoteVideoStreamType(Number(Object.keys(remoteUsers)[0]), 1);
         isHighRemoteVideoQuality = false;
-        ev.currentTarget.textContent = 'For student: Set High Quality'
+        ev.target.textContent = 'For student: Set High Quality'
     }
   });
 });
@@ -203,6 +204,7 @@ $(() => {
  */
 $(".join-btn").click(async function (e) {
   const type = $(e.currentTarget).data('role')
+  userType = type
   console.log(type)
   $('.join-btn').attr("disabled", true);
   try {
@@ -212,7 +214,7 @@ $(".join-btn").click(async function (e) {
     options.token = $("#token").val();
     await join(type);
 
-    // sendDataToMixPanel();
+    if(type === 'student') sendDataToMixPanel();
 
     if (options.token) {
       $("#success-alert-with-token").css("display", "block");
@@ -253,18 +255,12 @@ async function join(type) {
   client.on("user-unpublished", handleUserUnpublished);
   // client.on("network-quality", handleNetworkQuality)
   // Join the channel.
-  // client.setLowStreamParameter({
-  //   framerate: { max: 30, min: 15 },
-  //   width: { max: 640, min: 480 },
-  //   height: { max: 480, min: 360 },
-  // })
-
+  
   client.setLowStreamParameter({
-    width: 160,
-    height: 120,
-    framerate: 5,
-    bitrate: 120
-  });
+    framerate: { max: 30, min: 15 },
+    width: { max: 640, min: 480 },
+    height: { max: 480, min: 360 },
+  })
 
   client.enableDualStream();
   
@@ -325,7 +321,7 @@ async function leave() {
   $("#change-quality").text("For student: set high quality");
   isHighRemoteVideoQuality = false;
   clearInterval(mixPanelTimer)
-
+  userType = null
 }
 
 /*
