@@ -9,7 +9,10 @@
  * @param {string} mode - The {@link https://docs.agora.io/en/Voice/API%20Reference/web_ng/interfaces/clientconfig.html#mode| streaming algorithm} used by Agora SDK.
  * @param  {string} codec - The {@link https://docs.agora.io/en/Voice/API%20Reference/web_ng/interfaces/clientconfig.html#codec| client codec} used by the browser.
  */
-var client;
+var client = AgoraRTC.createClient({
+  mode: "rtc",
+  codec: getCodec()
+});
 
 /*
  * Clear the video and audio tracks used by `client` on initiation.
@@ -23,7 +26,7 @@ var localTracks = {
  * On initiation no users are connected.
  */
 var remoteUsers = {};
-var isHighRemoteVideoQuality = false;
+var isHighRemoteVideoQuality = true;
 
 /*
  * On initiation. `client` is not attached to any project or channel for any specific user.
@@ -180,15 +183,15 @@ $(() => {
   {
     if(isHighRemoteVideoQuality == false)
     {
-        client.setRemoteVideoStreamType(remoteUsers[Object.keys(remoteUsers)[0]], 0);
+        client.setRemoteVideoStreamType(Object.keys(remoteUsers)[0], 0);
         isHighRemoteVideoQuality = true;
-        ev.currentTarget.textContent = 'Set Low Quality'
+        ev.currentTarget.textContent = 'For student: Set Low Quality'
     }
     else
     {
-        client.setRemoteVideoStreamType(remoteUsers[Object.keys(remoteUsers)[0]], 1);
+        client.setRemoteVideoStreamType(Object.keys(remoteUsers)[0], 1);
         isHighRemoteVideoQuality = false;
-        ev.currentTarget.textContent = 'Set High Quality'
+        ev.currentTarget.textContent = 'For student: Set High Quality'
     }
   });
 });
@@ -203,12 +206,6 @@ $(".join-btn").click(async function (e) {
   console.log(type)
   $('.join-btn').attr("disabled", true);
   try {
-    if (!client) {
-      client = AgoraRTC.createClient({
-        mode: "rtc",
-        codec: getCodec()
-      });
-    }
     options.channel = $("#channel").val();
     options.uid = Number($("#uid").val());
     options.appid = $("#appid").val();
@@ -256,22 +253,29 @@ async function join(type) {
   client.on("user-unpublished", handleUserUnpublished);
   // client.on("network-quality", handleNetworkQuality)
   // Join the channel.
-  client.enableDualStream();
+  // client.setLowStreamParameter({
+  //   framerate: { max: 30, min: 15 },
+  //   width: { max: 640, min: 480 },
+  //   height: { max: 480, min: 360 },
+  // })
+
   client.setLowStreamParameter({
-    // framerate: { max: 30, min: 15 },
-    // width: { max: 640, min: 480 },
-    // height: { max: 480, min: 360 },
-    width: 360,
-    height: 240,
-    framerate: 5
-  })
+    width: 160,
+    height: 120,
+    framerate: 5,
+    bitrate: 120
+  });
+
+  client.enableDualStream();
   
   options.uid = await client.join(options.appid, options.channel, options.token || null, options.uid || null);
   
-  if(type === 'student') {
-    client.setRemoteVideoStreamType(remoteUsers[Object.keys(remoteUsers)[0]], 1);
-  }
+  // if(type === 'student') {
+  //   client.setRemoteVideoStreamType(Object.keys(remoteUsers)[0], 1);
+  // }
+  
   if(type === 'teacher') {
+    // Publish the local video and audio tracks to the channel.
     if (!localTracks.audioTrack) {
       localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
         encoderConfig: "music_standard"
@@ -291,8 +295,6 @@ async function join(type) {
   // localTracks.videoTrack.play("local-player");
   // $("#local-player-name").text(`localVideo(${options.uid})`);
   // $("#joined-setup").css("display", "flex");
-
-  // Publish the local video and audio tracks to the channel.
 }
 
 /*
@@ -319,6 +321,11 @@ async function leave() {
   $("#leave").attr("disabled", true);
   $("#joined-setup").css("display", "none");
   console.log("client leaves channel success");
+  
+  $("#change-quality").text("For student: set high quality");
+  isHighRemoteVideoQuality = false;
+  clearInterval(mixPanelTimer)
+
 }
 
 /*
